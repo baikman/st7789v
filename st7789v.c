@@ -136,7 +136,64 @@ static void st7789v_send_data(const uint8_t *data, size_t len) {
 }
 
 void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi_pin) {
+    st7789v_spi = spi;
+    st7789v_cs_pin = cs_pin;
+    
+    const uint32_t baud = 16000000; // 16 MHz
+    spi_init(st7789v_spi, baud);
+    spi_set_format(st7789v_spi, 8, 0, 0, SPI_MSB_FIRST);
 
+    gpio_set_function(mosi_pin, GPIO_FUNC_SPI);
+    gpio_set_function(sck_pin, GPIO_FUNC_SPI);
+
+    // Configure CS, DC, RST as outputs
+    gpio_init(st7789v_cs_pin);
+    gpio_set_dir(st7789v_cs_pin, GPIO_OUT);
+    gpio_put(st7789v_cs_pin, 1);
+    gpio_init(ST7789V_DC_PIN);
+    gpio_set_dir(ST7789V_DC_PIN, GPIO_OUT);
+    gpio_put(ST7789V_DC_PIN, 1);
+    gpio_init(ST7789V_RST_PIN);
+    gpio_set_dir(ST7789V_RST_PIN, GPIO_OUT);
+    gpio_put(ST7789V_RST_PIN, 1);
+
+    // Hardware reset
+    gpio_put(ST7789V_RST_PIN, 0);
+    sleep_ms(10);
+    gpio_put(ST7789V_DC_PIN, 1);
+    sleep_ms(5);
+
+    // Software reset
+    st7789v_send_command(0x01);
+    sleep_ms(150);
+
+    // Exit sleep
+    st7789v_send_command(0x11);
+    sleep_ms(120);
+
+    // 16-bit pixel mode RGB565
+    st7789v_send_command(0x3A);
+    st7789v_send_data(0x55, 1);
+
+    // No-rotation
+    st7789v_send_command(0x36);
+    st7789v_send_data(0x00, 1);
+
+    // Column address (0 to 239)
+    uint8_t *caset = {0x00, 0x00, 0x00, 0xEF};
+    st7789v_send_command(0x2A);
+    st7789v_send_data(caset, 4);
+    
+    // Row address (0 to 319)
+    uint8_t *raset = {0x00, 0x00, 0x01, 0x3F};
+    st7789v_send_command(0x2B);
+    st7789v_send_data(raset, 4);
+
+    // Display on
+    st7789v_send_command(0x13);
+    sleep_ms(10);
+    st7789v_send_command(0x29);
+    sleep_ms(100);
 }
 
 void st7789v_clear(void) {

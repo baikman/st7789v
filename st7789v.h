@@ -12,7 +12,7 @@
 #define ST7789V_WIDTH 240
 #define ST7789V_HEIGHT 320
 #define ST7789V_DC_PIN 16
-#define ST7789V_RST_PIN 29
+#define ST7789V_RST_PIN 20
 
 // API
 void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi_pin);
