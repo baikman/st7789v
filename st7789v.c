@@ -211,14 +211,24 @@ void st7789v_clear(void) {
 
 void st7789v_blink(uint16_t loops) {
     st7789_define_bounds(caset, raset);
-    for (uint16_t i = 0; i < 65536; i++) {
-        uint8_t high_byte = i >> 8;
-        uint8_t low_byte = i & 0xFF;
-        st7789v_send_command(0x2C);
-        for (uint32_t pixel = 0; pixel < ST7789V_WIDTH * ST7789V_HEIGHT; pixel++) {
-            st7789v_send_data(&low_byte, 1);
-            st7789v_send_data(&high_byte, 1);
+    for (uint8_t l = 0; l < loops; l++) {
+        for (uint16_t i = 0; i < 256; i++) {
+            st7789v_send_command(0x2C);
+            for (uint16_t pixel = 0; pixel < ST7789V_WIDTH * ST7789V_HEIGHT; pixel++) {
+                st7789v_send_data(&i, 1);
+            }
         }
+    }
+}
+
+void st7789v_set_background(uint16_t color) {
+    st7789_define_bounds(caset, raset);
+    uint8_t high_byte = color >> 8;
+    uint8_t low_byte = color & 0xFF;
+    st7789v_send_command(0x2C);
+    for (uint16_t pixel = 0; pixel < ST7789V_WIDTH * ST7789V_HEIGHT; pixel++) {
+        st7789v_send_data(&low_byte, 1);
+        st7789v_send_data(&high_byte, 1);
     }
 }
 
