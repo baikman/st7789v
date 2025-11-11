@@ -112,6 +112,12 @@ static const uint8_t font5x7[95][5] = {
     {0x10,0x08,0x08,0x10,0x08}  // '~'
 };
 
+// Column address (0 to 239)
+static uint8_t caset[4] = {0x00, 0x00, 0x00, 0xEF};
+
+// Row address (0 to 319)
+static uint8_t raset[4] = {0x00, 0x00, 0x01, 0x3F};
+
 // Helper functions
 void cs_low(void)  {
     gpio_put(PIN_CS, 0);
@@ -124,15 +130,22 @@ void cs_high(void){
 static void st7789v_send_command(uint8_t cmd) {
     gpio_put(ST7789V_DC_PIN, 0);
     cs_low();
-    spi_write_blocking(spi, &cmd, 1);
+    spi_write_blocking(st7789v_spi, &cmd, 1);
     cs_high();
 }
 
 static void st7789v_send_data(const uint8_t *data, size_t len) {
     gpio_put(ST7789V_DC_PIN, 1);
     cs_low();
-    spi_write_blocking(spi, data, len);
+    spi_write_blocking(st7789v_spi, data, len);
     cs_high();
+}
+
+static void st7789_define_bounds(const uint8_t *cols, const uint8_t *rows) {
+    st7789v_send_command(0x2A);
+    st7789v_send_data(cols, 4);
+    st7789v_send_command(0x2B);
+    st7789v_send_data(rows, 4);
 }
 
 void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi_pin) {
@@ -160,7 +173,7 @@ void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi
     // Hardware reset
     gpio_put(ST7789V_RST_PIN, 0);
     sleep_ms(10);
-    gpio_put(ST7789V_DC_PIN, 1);
+    gpio_put(ST7789V_RST_PIN, 1);
     sleep_ms(5);
 
     // Software reset
@@ -173,21 +186,16 @@ void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi
 
     // 16-bit pixel mode RGB565
     st7789v_send_command(0x3A);
-    st7789v_send_data(0x55, 1);
+    uint8_t colmod = 0x55;
+    st7789v_send_data(&colmod, 1);
 
     // No-rotation
     st7789v_send_command(0x36);
-    st7789v_send_data(0x00, 1);
+    uint8_t command = 0x00;
+    st7789v_send_data(&command, 1);
 
-    // Column address (0 to 239)
-    uint8_t *caset = {0x00, 0x00, 0x00, 0xEF};
-    st7789v_send_command(0x2A);
-    st7789v_send_data(caset, 4);
-    
-    // Row address (0 to 319)
-    uint8_t *raset = {0x00, 0x00, 0x01, 0x3F};
-    st7789v_send_command(0x2B);
-    st7789v_send_data(raset, 4);
+    // Cols/Rows
+    st7789_define_bounds(caset, raset);
 
     // Display on
     st7789v_send_command(0x13);
@@ -200,12 +208,17 @@ void st7789v_clear(void) {
 
 }
 
-void st7789v_update(void) {
-
-}
-
-void st7789v_blink(uint16_t loops, uint16_t ms) {
-
+void st7789v_blink(uint16_t loops) {
+    st7789_define_bounds(caset, raset);
+    for (uint16_t i = 0; i < 65536; i++) {
+        uint8_t high_byte = i >> 8;
+        uint8_t low_byte = i & 0xFF;
+        st7789v_send_command(0x2C);
+        for (uint32_t pixel = 0; pixel < ST7789V_WIDTH * ST7789V_HEIGHT; pixel++) {
+            st7789v_send_data(&low_byte, 1);
+            st7789v_send_data(&high_byte, 1);
+        }
+    }
 }
 
 void st7789v_write_text(uint8_t textBuff[], uint8_t row, uint8_t column) {
