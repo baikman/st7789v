@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 static spi_inst_t *st7789v_spi;
+static uint8_t st7789v_cs_pin;
 static uint8_t buffer[ST7789V_WIDTH * ST7789V_HEIGHT / 8];
 static const int FONT_W = 5;
 static const int FONT_H = 7;
@@ -120,11 +121,11 @@ static uint8_t raset[4] = {0x00, 0x00, 0x01, 0x3F};
 
 // Helper functions
 void cs_low(void)  {
-    gpio_put(PIN_CS, 0);
+    gpio_put(st7789v_cs_pin, 0);
 }
 
 void cs_high(void){
-    gpio_put(PIN_CS, 1);
+    gpio_put(st7789v_cs_pin, 1);
 }
 
 static void st7789v_send_command(uint8_t cmd) {
