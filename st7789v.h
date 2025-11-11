@@ -20,6 +20,7 @@ void st7789v_init(spi_inst_t *spi, uint8_t cs_pin, uint8_t sck_pin, uint8_t mosi
 void st7789v_clear(void);
 void st7789v_update(void);
 void st7789v_blink(uint8_t loops);
+void st7789v_set_background(uint16_t color);
 void st7789v_write_text(uint8_t textBuff[], uint8_t row, uint8_t column);
 
 #endif
